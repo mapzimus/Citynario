@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "city_pack": "us-ma-lynn@0.1.0",
+  "baseline": "lynn-2026-07",
+  "scenario": {
+    "name": "Downtown Housing A",
+    "description": "Residential development engineering example",
+    "interventions": [
+      {
+        "id": "development-1",
+        "type": "residential_development",
+        "geometry": null,
+        "inputs": {
+          "units": {
+            "studio": 30,
+            "one_bedroom": 100,
+            "two_bedroom": 60,
+            "three_plus_bedroom": 10
+          },
+          "affordable_share": 0.2,
+          "parking_spaces_per_unit": 0.6,
+          "site_area_square_feet": 80000,
+          "proposed_impervious_square_feet": 52000
+        }
+      }
+    ],
+    "assumption_set": "lynn-central-2026",
+    "requested_modules": [
+      "resident_estimate",
+      "school_enrollment",
+      "mobility_screening",
+      "site_context"
+    ]
+  }
+}

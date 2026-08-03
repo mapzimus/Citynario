@@ -1,0 +1,29 @@
+schema_version: "1.0"
+pack_id: us-ma-lynn
+sources:
+  - id: citynario-illustrative-defaults
+    title: Citynario engineering scaffold defaults
+    publisher: Citynario project
+    canonical_url: null
+    retrieved_at: "2026-08-02"
+    license:
+      name: Not an external dataset
+      url: null
+    geography: Lynn, Massachusetts
+    update_frequency: replaced during model calibration
+    status: placeholder
+    known_limitations:
+      - Values exist only to exercise the software and are not decision-ready evidence.
+  - id: lynn-boundary-candidate
+    title: Lynn municipal boundary source candidate
+    publisher: To be verified during the Lynn data audit
+    canonical_url: null
+    retrieved_at: null
+    license:
+      name: To be reviewed
+      url: null
+    geography: Lynn, Massachusetts
+    update_frequency: as published
+    status: candidate
+    known_limitations:
+      - Acquisition URL, license, effective date, and checksum are intentionally unresolved.

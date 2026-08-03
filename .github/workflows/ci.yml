@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --all-packages --group dev --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: >-
+          uv run mypy apps/api/src
+          python/citynario_core/src
+          python/citynario_assistant/src
+          python/citynario_data/src
+          python/citynario_models/src
+          city-packs/us-ma-lynn/src
+      - run: uv run pytest --cov
+      - run: uv run citynario-data validate-pack city-packs/us-ma-lynn
+
+  web:
+    name: TypeScript checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  containers:
+    name: Container definitions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cp .env.example .env
+      - run: docker compose config --quiet
+      - run: docker build -f infra/docker/api.Dockerfile -t citynario-api:ci .
+      - run: docker build --target production -f infra/docker/web.Dockerfile -t citynario-web:ci .

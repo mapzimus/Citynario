@@ -1,0 +1,12 @@
+.git
+.github
+.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/node_modules
+**/dist
+city-packs/*/data/raw
+city-packs/*/data/interim
+city-packs/*/data/processed
+docs

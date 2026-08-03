@@ -1,0 +1,44 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.venv/
+dist/
+build/
+*.egg-info/
+
+# Node
+node_modules/
+.pnpm-store/
+apps/web/dist/
+.next/
+*.tsbuildinfo
+coverage/
+
+# Editors and operating systems
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.DS_Store
+Thumbs.db
+
+# Runtime data
+*.log
+tmp/
+city-packs/*/data/raw/*
+city-packs/*/data/interim/*
+city-packs/*/data/processed/*
+!city-packs/*/data/raw/.gitkeep
+!city-packs/*/data/interim/.gitkeep
+!city-packs/*/data/processed/.gitkeep
+!city-packs/*/data/**/README.md
