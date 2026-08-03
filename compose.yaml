@@ -1,0 +1,56 @@
+name: citynario
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-citynario}
+      POSTGRES_USER: ${POSTGRES_USER:-citynario}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-citynario_local_only}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-citynario} -d ${POSTGRES_DB:-citynario}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-citynario}:${POSTGRES_PASSWORD:-citynario_local_only}@db:5432/${POSTGRES_DB:-citynario}
+    command: ["uv", "run", "--package", "citynario-api", "uvicorn", "citynario_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/workspace
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+      target: development
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    command: ["pnpm", "--filter", "@citynario/web", "dev", "--hostname", "0.0.0.0"]
+    ports:
+      - "5173:3000"
+    volumes:
+      - ./apps/web:/workspace/apps/web
+      - ./packages:/workspace/packages
+      - web_node_modules:/workspace/node_modules
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  web_node_modules:

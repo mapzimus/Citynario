@@ -1,0 +1,16 @@
+[project]
+name = "citynario-models"
+version = "0.1.0"
+description = "Transparent deterministic simulation modules for Citynario"
+requires-python = ">=3.12"
+dependencies = ["citynario-core"]
+
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+citynario-core = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/citynario_models"]

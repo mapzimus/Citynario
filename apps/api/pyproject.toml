@@ -1,0 +1,31 @@
+[project]
+name = "citynario-api"
+version = "0.1.0"
+description = "FastAPI composition root for Citynario"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.16.4",
+    "asyncpg>=0.30.0",
+    "citynario-assistant",
+    "citynario-core",
+    "citynario-models",
+    "citynario-pack-lynn",
+    "fastapi>=0.116.1",
+    "geoalchemy2>=0.18.0",
+    "pydantic-settings>=2.10.1",
+    "sqlalchemy[asyncio]>=2.0.41",
+    "uvicorn[standard]>=0.35.0",
+]
+
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+citynario-assistant = { workspace = true }
+citynario-core = { workspace = true }
+citynario-models = { workspace = true }
+citynario-pack-lynn = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/citynario_api"]

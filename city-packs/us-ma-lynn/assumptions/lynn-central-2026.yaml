@@ -1,0 +1,53 @@
+schema_version: "1.0"
+id: lynn-central-2026
+status: illustrative
+review_required: true
+values:
+  occupancy_rate:
+    label: Occupied share of completed units
+    unit: ratio
+    low: 0.90
+    central: 0.94
+    high: 0.98
+    source_ids: [citynario-illustrative-defaults]
+    note: Placeholder range for the engineering scaffold; replace with cited local evidence.
+  people_per_occupied_unit:
+    label: Residents per occupied housing unit
+    unit: people/occupied unit
+    low: 1.55
+    central: 1.85
+    high: 2.15
+    source_ids: [citynario-illustrative-defaults]
+    note: Placeholder blended rate; production modeling should use unit-type-specific local rates.
+  school_age_share:
+    label: School-age share of added residents
+    unit: ratio
+    low: 0.10
+    central: 0.14
+    high: 0.18
+    source_ids: [citynario-illustrative-defaults]
+    note: Placeholder share for demonstrating model dependencies.
+  public_school_capture:
+    label: Public-school enrollment share
+    unit: ratio
+    low: 0.72
+    central: 0.82
+    high: 0.90
+    source_ids: [citynario-illustrative-defaults]
+    note: Placeholder rate; does not represent an official Lynn Public Schools projection.
+  daily_person_trips_per_resident:
+    label: Daily person trips per added resident
+    unit: trips/person/day
+    low: 2.6
+    central: 3.1
+    high: 3.7
+    source_ids: [citynario-illustrative-defaults]
+    note: Screening assumption only; requires locally reviewed evidence.
+  vehicle_mode_share:
+    label: Vehicle share of person trips
+    unit: ratio
+    low: 0.40
+    central: 0.50
+    high: 0.60
+    source_ids: [citynario-illustrative-defaults]
+    note: Placeholder location-neutral rate; future versions should use accessibility context.

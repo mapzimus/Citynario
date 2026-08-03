@@ -1,0 +1,24 @@
+[project]
+name = "citynario-pack-lynn"
+version = "0.1.0"
+description = "Pilot City Pack for Lynn, Massachusetts"
+requires-python = ">=3.12"
+dependencies = [
+    "citynario-core",
+    "pyyaml>=6.0.2",
+]
+
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+citynario-core = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/citynario_pack_lynn"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"manifest.yaml" = "citynario_pack_lynn/resources/manifest.yaml"
+"assumptions" = "citynario_pack_lynn/resources/assumptions"
+"sources" = "citynario_pack_lynn/resources/sources"

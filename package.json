@@ -1,5 +1,21 @@
 {
   "name": "citynario",
+<<<<<<< HEAD
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.14.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm --recursive --if-present build",
+    "dev": "pnpm --filter @citynario/web dev",
+    "format": "pnpm --recursive --if-present format",
+    "lint": "pnpm --recursive --if-present lint",
+    "test": "pnpm --recursive --if-present test",
+    "typecheck": "pnpm --recursive --if-present typecheck"
+  }
+=======
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -36,4 +52,5 @@
     "sharp": "0.35.3"
   },
   "type": "module"
+>>>>>>> origin/main
 }

@@ -1,0 +1,41 @@
+schema_version: "1.0"
+pack:
+  id: us-ma-lynn
+  name: Lynn, Massachusetts
+  version: 0.1.0
+  status: experimental
+  published_at: "2026-08-02"
+  maintainers:
+    - name: Citynario project
+  boundary:
+    country: US
+    state: MA
+    county: Essex
+  default_crs: EPSG:26986
+  display_crs: EPSG:4326
+  map:
+    center: [-70.9495, 42.4668]
+    zoom: 12
+    bounds: [-71.08, 42.42, -70.84, 42.55]
+
+baseline:
+  id: lynn-2026-07
+  effective_date: "2026-07-31"
+
+modules:
+  - resident_estimate
+  - school_enrollment
+  - mobility_screening
+  - site_context
+
+assumption_sets:
+  - lynn-central-2026
+
+disclaimer: >-
+  Citynario estimates plausible impacts under stated assumptions. Results are for exploration and
+  decision support, not prediction, legal determination, or professional engineering certification.
+
+known_limitations:
+  - All model values in this initial scaffold are illustrative and require Lynn-specific validation.
+  - The mobility module is a screening calculation, not traffic assignment or intersection analysis.
+  - The school module does not assign students to individual schools.
