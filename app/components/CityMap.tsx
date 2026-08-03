@@ -1,8 +1,8 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { FullscreenControl, Map as MapLibreMap, Marker, NavigationControl, ScaleControl } from "maplibre-gl";
-import type { FeatureCollection, LineString, Point, Polygon } from "geojson";
+import type { GeoJsonObject } from "geojson";
+import type { LayerGroup, Map as LeafletMap, Marker as LeafletMarker, Polygon as LeafletPolygon } from "leaflet";
 
 type MapSite = {
   id: string;
@@ -21,8 +21,8 @@ type Props = {
 };
 
 const LYNN_BOUNDS: [[number, number], [number, number]] = [
-  [-71.012, 42.431],
-  [-70.875, 42.525],
+  [42.431, -71.012],
+  [42.525, -70.875],
 ];
 
 const LYNN_BOUNDARY_URL =
@@ -34,103 +34,50 @@ const siteHalfSizes: Record<string, [number, number]> = {
   central: [0.00048, 0.00033],
 };
 
-function siteFeatures(sites: MapSite[]): FeatureCollection<Polygon> {
-  return {
-    type: "FeatureCollection",
-    features: sites.map((site) => {
-      const [halfLng, halfLat] = siteHalfSizes[site.id] ?? [0.0005, 0.00035];
-      const [lng, lat] = site.center;
-      return {
-        type: "Feature",
-        properties: { id: site.id, name: site.name, short: site.short, detail: site.detail },
-        geometry: {
-          type: "Polygon",
-          coordinates: [[
-            [lng - halfLng, lat - halfLat],
-            [lng + halfLng, lat - halfLat],
-            [lng + halfLng, lat + halfLat],
-            [lng - halfLng, lat + halfLat],
-            [lng - halfLng, lat - halfLat],
-          ]],
-        },
-      };
-    }),
-  };
+function siteLatLngs(site: MapSite): [number, number][] {
+  const [halfLng, halfLat] = siteHalfSizes[site.id] ?? [0.0005, 0.00035];
+  const [lng, lat] = site.center;
+  return [
+    [lat - halfLat, lng - halfLng],
+    [lat - halfLat, lng + halfLng],
+    [lat + halfLat, lng + halfLng],
+    [lat + halfLat, lng - halfLng],
+  ];
 }
 
-const transitFeatures: FeatureCollection<LineString | Point> = {
-  type: "FeatureCollection",
-  features: [
-    {
-      type: "Feature",
-      properties: { kind: "rail", name: "Newburyport / Rockport Line" },
-      geometry: {
-        type: "LineString",
-        coordinates: [
-          [-70.985, 42.461],
-          [-70.969, 42.461],
-          [-70.953, 42.462],
-          [-70.945421, 42.462953],
-          [-70.929, 42.469],
-          [-70.91, 42.477],
-        ],
-      },
-    },
-    {
-      type: "Feature",
-      properties: { kind: "station", name: "Lynn station" },
-      geometry: { type: "Point", coordinates: [-70.945421, 42.462953] },
-    },
-  ],
-};
+const transitLine: [number, number][] = [
+  [42.461, -70.985],
+  [42.461, -70.969],
+  [42.462, -70.953],
+  [42.462953, -70.945421],
+  [42.469, -70.929],
+  [42.477, -70.91],
+];
 
-const schoolFeatures: FeatureCollection<Point> = {
-  type: "FeatureCollection",
-  features: [
-    ["Lynn Classical", -70.9631, 42.4727],
-    ["Lynn English", -70.9348, 42.4768],
-    ["Fecteau-Leary", -70.949, 42.4652],
-    ["Brickett Elementary", -70.9257, 42.4567],
-  ].map(([name, lng, lat]) => ({
-    type: "Feature",
-    properties: { name },
-    geometry: { type: "Point", coordinates: [Number(lng), Number(lat)] },
-  })),
-};
+const schools: Array<{ name: string; position: [number, number] }> = [
+  { name: "Lynn Classical", position: [42.4727, -70.9631] },
+  { name: "Lynn English", position: [42.4768, -70.9348] },
+  { name: "Fecteau-Leary", position: [42.4652, -70.949] },
+  { name: "Brickett Elementary", position: [42.4567, -70.9257] },
+];
 
-const floodFeatures: FeatureCollection<Polygon> = {
-  type: "FeatureCollection",
-  features: [
-    {
-      type: "Feature",
-      properties: { name: "Illustrative coastal screening context" },
-      geometry: {
-        type: "Polygon",
-        coordinates: [[
-          [-70.976, 42.438],
-          [-70.905, 42.438],
-          [-70.905, 42.463],
-          [-70.921, 42.468],
-          [-70.939, 42.461],
-          [-70.954, 42.458],
-          [-70.976, 42.466],
-          [-70.976, 42.438],
-        ]],
-      },
-    },
-  ],
-};
-
-const layersByKey: Record<LayerKey, string[]> = {
-  transit: ["transit-line", "transit-station", "transit-label"],
-  schools: ["school-points", "school-labels"],
-  flood: ["flood-fill", "flood-line"],
-};
+const floodContext: [number, number][] = [
+  [42.438, -70.976],
+  [42.438, -70.905],
+  [42.463, -70.905],
+  [42.468, -70.921],
+  [42.461, -70.939],
+  [42.458, -70.954],
+  [42.466, -70.976],
+];
 
 export function CityMap({ sites, selectedSiteId, onSelectSite }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<MapLibreMap | null>(null);
-  const markersRef = useRef<Record<string, { marker: Marker; element: HTMLButtonElement }>>({});
+  const frameRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
+  const siteMarkersRef = useRef<Record<string, LeafletMarker>>({});
+  const sitePolygonsRef = useRef<Record<string, LeafletPolygon>>({});
+  const layerGroupsRef = useRef<Partial<Record<LayerKey, LayerGroup>>>({});
   const initialSelectedSiteRef = useRef(selectedSiteId);
   const [loading, setLoading] = useState(true);
   const [mapError, setMapError] = useState("");
@@ -141,179 +88,146 @@ export function CityMap({ sites, selectedSiteId, onSelectSite }: Props) {
     if (!containerRef.current || mapRef.current) return;
     const initialSites = sites;
     const initialSelectedSiteId = initialSelectedSiteRef.current;
+    let disposed = false;
+    let loadingTimer: number | undefined;
 
-    let map: MapLibreMap;
-    try {
-      map = new MapLibreMap({
-        container: containerRef.current,
-        style: "https://tiles.openfreemap.org/styles/liberty",
-        bounds: LYNN_BOUNDS,
-        fitBoundsOptions: { padding: { top: 70, right: 45, bottom: 55, left: 45 } },
-        attributionControl: { compact: true },
-        cooperativeGestures: true,
+    const initialize = async () => {
+      const L = await import("leaflet");
+      if (disposed || !containerRef.current) return;
+
+      const map = L.map(containerRef.current, {
+        zoomControl: true,
+        attributionControl: true,
+        preferCanvas: true,
+        scrollWheelZoom: false,
       });
-    } catch {
-      window.setTimeout(() => {
-        setMapError("The interactive map could not start in this browser.");
+      mapRef.current = map;
+      map.fitBounds(LYNN_BOUNDS, { padding: [34, 34] });
+      map.zoomControl.setPosition("bottomright");
+      L.control.scale({ imperial: true, metric: false, maxWidth: 100, position: "bottomleft" }).addTo(map);
+
+      let mapSettled = false;
+      const revealMap = () => {
+        if (mapSettled || disposed) return;
+        mapSettled = true;
+        if (loadingTimer) window.clearTimeout(loadingTimer);
         setLoading(false);
-      }, 0);
-      return;
-    }
+      };
 
-    mapRef.current = map;
-    map.addControl(new NavigationControl({ showCompass: true, showZoom: true }), "bottom-right");
-    map.addControl(new FullscreenControl(), "bottom-right");
-    map.addControl(new ScaleControl({ maxWidth: 100, unit: "imperial" }), "bottom-left");
-
-    map.on("load", () => {
-      map.addSource("lynn-boundary", {
-        type: "geojson",
-        data: LYNN_BOUNDARY_URL,
-        attribution: "U.S. Census Bureau TIGERweb",
+      const tiles = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+        maxZoom: 19,
       });
-      map.addLayer({
-        id: "lynn-boundary-fill",
-        type: "fill",
-        source: "lynn-boundary",
-        paint: { "fill-color": "#a8dbc7", "fill-opacity": 0.08 },
+      tiles.once("load", revealMap);
+      tiles.once("tileerror", () => {
+        revealMap();
+        setMapError("Basemap tiles are unavailable right now. Site and context layers remain interactive.");
       });
-      map.addLayer({
-        id: "lynn-boundary-line",
-        type: "line",
-        source: "lynn-boundary",
-        paint: { "line-color": "#174d43", "line-width": 2.2, "line-dasharray": [2, 1.2] },
-      });
-
-      map.addSource("flood-context", { type: "geojson", data: floodFeatures });
-      map.addLayer({
-        id: "flood-fill",
-        type: "fill",
-        source: "flood-context",
-        layout: { visibility: "none" },
-        paint: { "fill-color": "#64b5cf", "fill-opacity": 0.23 },
-      });
-      map.addLayer({
-        id: "flood-line",
-        type: "line",
-        source: "flood-context",
-        layout: { visibility: "none" },
-        paint: { "line-color": "#3188a3", "line-width": 1.5, "line-dasharray": [2, 2] },
-      });
-
-      map.addSource("transit-context", { type: "geojson", data: transitFeatures });
-      map.addLayer({
-        id: "transit-line",
-        type: "line",
-        source: "transit-context",
-        filter: ["==", ["get", "kind"], "rail"],
-        paint: { "line-color": "#ee745b", "line-width": 3, "line-opacity": 0.9 },
-      });
-      map.addLayer({
-        id: "transit-station",
-        type: "circle",
-        source: "transit-context",
-        filter: ["==", ["get", "kind"], "station"],
-        paint: {
-          "circle-radius": 7,
-          "circle-color": "#f3f0e7",
-          "circle-stroke-color": "#ee745b",
-          "circle-stroke-width": 3,
-        },
-      });
-      map.addLayer({
-        id: "transit-label",
-        type: "symbol",
-        source: "transit-context",
-        filter: ["==", ["get", "kind"], "station"],
-        layout: {
-          "text-field": ["get", "name"],
-          "text-size": 11,
-          "text-offset": [0, 1.4],
-          "text-anchor": "top",
-        },
-        paint: { "text-color": "#162d29", "text-halo-color": "#faf8f1", "text-halo-width": 1.5 },
-      });
-
-      map.addSource("schools", { type: "geojson", data: schoolFeatures });
-      map.addLayer({
-        id: "school-points",
-        type: "circle",
-        source: "schools",
-        paint: {
-          "circle-radius": 5,
-          "circle-color": "#efc35b",
-          "circle-stroke-color": "#162d29",
-          "circle-stroke-width": 1.5,
-        },
-      });
-      map.addLayer({
-        id: "school-labels",
-        type: "symbol",
-        source: "schools",
-        minzoom: 12.5,
-        layout: {
-          "text-field": ["get", "name"],
-          "text-size": 10,
-          "text-offset": [0, 1.1],
-          "text-anchor": "top",
-          "text-allow-overlap": false,
-        },
-        paint: { "text-color": "#162d29", "text-halo-color": "#faf8f1", "text-halo-width": 1.5 },
-      });
-
-      map.addSource("development-sites", { type: "geojson", data: siteFeatures(initialSites) });
-      map.addLayer({
-        id: "site-fill",
-        type: "fill",
-        source: "development-sites",
-        paint: {
-          "fill-color": ["case", ["==", ["get", "id"], initialSelectedSiteId], "#ee745b", "#a8dbc7"],
-          "fill-opacity": ["case", ["==", ["get", "id"], initialSelectedSiteId], 0.58, 0.34],
-        },
-      });
-      map.addLayer({
-        id: "site-outline",
-        type: "line",
-        source: "development-sites",
-        paint: {
-          "line-color": ["case", ["==", ["get", "id"], initialSelectedSiteId], "#a63f2d", "#174d43"],
-          "line-width": ["case", ["==", ["get", "id"], initialSelectedSiteId], 3, 2],
-        },
-      });
+      tiles.addTo(map);
+      loadingTimer = window.setTimeout(() => {
+        revealMap();
+        setMapError("The basemap is taking longer than expected. You can still select sites and use the controls.");
+      }, 4500);
 
       initialSites.forEach((site, index) => {
-        const element = document.createElement("button");
-        element.type = "button";
-        element.className = `map-site-marker${site.id === initialSelectedSiteId ? " selected" : ""}`;
-        element.setAttribute("aria-label", `Select ${site.name}`);
-        const number = document.createElement("span");
-        number.textContent = String(index + 1).padStart(2, "0");
-        const label = document.createElement("b");
-        label.textContent = site.short;
-        element.append(number, label);
-        element.addEventListener("click", () => onSelectSite(site.id));
-        const marker = new Marker({ element, anchor: "bottom-left" }).setLngLat(site.center).addTo(map);
-        markersRef.current[site.id] = { marker, element };
+        const selected = site.id === initialSelectedSiteId;
+        const polygon = L.polygon(siteLatLngs(site), {
+          color: selected ? "#a63f2d" : "#174d43",
+          weight: selected ? 3 : 2,
+          fillColor: selected ? "#ee745b" : "#a8dbc7",
+          fillOpacity: selected ? 0.58 : 0.34,
+        }).addTo(map);
+        polygon.on("click", () => onSelectSite(site.id));
+        polygon.bindTooltip(`${site.name}<br><small>${site.detail}</small>`, { direction: "top", className: "city-map-tooltip" });
+        sitePolygonsRef.current[site.id] = polygon;
+
+        const icon = L.divIcon({
+          className: `map-site-marker${selected ? " selected" : ""}`,
+          html: `<span aria-hidden="true"></span><b>${site.short}</b>`,
+          iconSize: [112, 34],
+          iconAnchor: [15, 31],
+        });
+        const marker = L.marker([site.center[1], site.center[0]], {
+          icon,
+          keyboard: true,
+          title: `Select ${site.name}`,
+          alt: `Site ${String(index + 1).padStart(2, "0")}: ${site.name}`,
+          riseOnHover: true,
+        }).addTo(map);
+        marker.on("click", () => onSelectSite(site.id));
+        siteMarkersRef.current[site.id] = marker;
       });
 
-      map.on("click", "site-fill", (event) => {
-        const siteId = event.features?.[0]?.properties?.id;
-        if (typeof siteId === "string") onSelectSite(siteId);
-      });
-      map.on("mouseenter", "site-fill", () => { map.getCanvas().style.cursor = "pointer"; });
-      map.on("mouseleave", "site-fill", () => { map.getCanvas().style.cursor = ""; });
-      setLoading(false);
-    });
+      const transitGroup = L.layerGroup([
+        L.polyline(transitLine, { color: "#ee745b", weight: 3, opacity: 0.9 }),
+        L.circleMarker([42.462953, -70.945421], {
+          radius: 7,
+          color: "#ee745b",
+          weight: 3,
+          fillColor: "#faf8f1",
+          fillOpacity: 1,
+        }).bindTooltip("Lynn station", { direction: "top", className: "city-map-tooltip" }),
+      ]).addTo(map);
 
-    map.once("error", () => {
-      if (!map.loaded()) setMapError("Some map data could not load. Check your connection and try again.");
+      const schoolGroup = L.layerGroup(
+        schools.map((school) =>
+          L.circleMarker(school.position, {
+            radius: 5,
+            color: "#162d29",
+            weight: 1.5,
+            fillColor: "#efc35b",
+            fillOpacity: 1,
+          }).bindTooltip(school.name, { direction: "top", className: "city-map-tooltip" }),
+        ),
+      ).addTo(map);
+
+      const floodGroup = L.layerGroup([
+        L.polygon(floodContext, {
+          color: "#3188a3",
+          weight: 1.5,
+          dashArray: "5 5",
+          fillColor: "#64b5cf",
+          fillOpacity: 0.23,
+        }).bindTooltip("Illustrative coastal screening context", { direction: "top", className: "city-map-tooltip" }),
+      ]);
+
+      layerGroupsRef.current = { transit: transitGroup, schools: schoolGroup, flood: floodGroup };
+
+      void fetch(LYNN_BOUNDARY_URL)
+        .then((response) => {
+          if (!response.ok) throw new Error("Boundary request failed");
+          return response.json() as Promise<GeoJsonObject>;
+        })
+        .then((boundary) => {
+          if (disposed) return;
+          L.geoJSON(boundary, {
+            style: { color: "#174d43", weight: 2.2, dashArray: "7 5", fillColor: "#a8dbc7", fillOpacity: 0.08 },
+          }).addTo(map);
+        })
+        .catch(() => {
+          if (!disposed) setMapError("The live city boundary is unavailable; the basemap and scenario sites still work.");
+        });
+
+      const resizeMap = () => window.setTimeout(() => map.invalidateSize(), 60);
+      document.addEventListener("fullscreenchange", resizeMap);
+      map.once("unload", () => document.removeEventListener("fullscreenchange", resizeMap));
+    };
+
+    void initialize().catch(() => {
+      if (!disposed) {
+        setLoading(false);
+        setMapError("The interactive map could not start in this browser. Please reload the page.");
+      }
     });
 
     return () => {
-      Object.values(markersRef.current).forEach(({ marker }) => marker.remove());
-      markersRef.current = {};
-      map.remove();
+      disposed = true;
+      if (loadingTimer) window.clearTimeout(loadingTimer);
+      mapRef.current?.remove();
       mapRef.current = null;
+      siteMarkersRef.current = {};
+      sitePolygonsRef.current = {};
+      layerGroupsRef.current = {};
     };
   }, [onSelectSite, sites]);
 
@@ -321,28 +235,38 @@ export function CityMap({ sites, selectedSiteId, onSelectSite }: Props) {
     const map = mapRef.current;
     const site = sites.find((item) => item.id === selectedSiteId);
     if (!map || !site) return;
-    Object.entries(markersRef.current).forEach(([id, { element }]) => element.classList.toggle("selected", id === selectedSiteId));
-    if (map.getLayer("site-fill")) {
-      map.setPaintProperty("site-fill", "fill-color", ["case", ["==", ["get", "id"], selectedSiteId], "#ee745b", "#a8dbc7"]);
-      map.setPaintProperty("site-fill", "fill-opacity", ["case", ["==", ["get", "id"], selectedSiteId], 0.58, 0.34]);
-      map.setPaintProperty("site-outline", "line-color", ["case", ["==", ["get", "id"], selectedSiteId], "#a63f2d", "#174d43"]);
-      map.setPaintProperty("site-outline", "line-width", ["case", ["==", ["get", "id"], selectedSiteId], 3, 2]);
-      map.flyTo({ center: site.center, zoom: Math.max(map.getZoom(), 14.7), duration: 850, essential: true });
-    }
+
+    Object.entries(siteMarkersRef.current).forEach(([id, marker]) => {
+      marker.getElement()?.classList.toggle("selected", id === selectedSiteId);
+    });
+    Object.entries(sitePolygonsRef.current).forEach(([id, polygon]) => {
+      const selected = id === selectedSiteId;
+      polygon.setStyle({
+        color: selected ? "#a63f2d" : "#174d43",
+        weight: selected ? 3 : 2,
+        fillColor: selected ? "#ee745b" : "#a8dbc7",
+        fillOpacity: selected ? 0.58 : 0.34,
+      });
+    });
+    map.flyTo([site.center[1], site.center[0]], Math.max(map.getZoom(), 15), { duration: 0.85 });
   }, [selectedSiteId, sites]);
 
   const toggleLayer = (key: LayerKey) => {
+    const map = mapRef.current;
+    const group = layerGroupsRef.current[key];
     const next = !layers[key];
     setLayers((current) => ({ ...current, [key]: next }));
-    const map = mapRef.current;
-    if (!map) return;
-    layersByKey[key].forEach((layerId) => {
-      if (map.getLayer(layerId)) map.setLayoutProperty(layerId, "visibility", next ? "visible" : "none");
-    });
+    if (!map || !group) return;
+    if (next) group.addTo(map);
+    else group.removeFrom(map);
   };
 
-  const resetMap = () => {
-    mapRef.current?.fitBounds(LYNN_BOUNDS, { padding: { top: 70, right: 45, bottom: 55, left: 45 }, duration: 900 });
+  const resetMap = () => mapRef.current?.fitBounds(LYNN_BOUNDS, { padding: [34, 34], animate: true, duration: 0.8 });
+
+  const toggleFullscreen = async () => {
+    if (!frameRef.current) return;
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else await frameRef.current.requestFullscreen();
   };
 
   const submitSearch = (event: FormEvent) => {
@@ -355,7 +279,7 @@ export function CityMap({ sites, selectedSiteId, onSelectSite }: Props) {
   };
 
   return (
-    <div className="city-map-frame">
+    <div className="city-map-frame" ref={frameRef}>
       <div ref={containerRef} className="city-map" role="application" aria-label="Interactive map of Lynn, Massachusetts" />
       <form className="map-search" onSubmit={submitSearch}>
         <span aria-hidden="true">⌕</span>
@@ -382,10 +306,13 @@ export function CityMap({ sites, selectedSiteId, onSelectSite }: Props) {
         <span><i className="legend-boundary" /> Lynn boundary</span>
         <span><i className="legend-source" /> Live basemap</span>
       </div>
-      <button type="button" className="map-reset" onClick={resetMap}>View all Lynn</button>
+      <div className="map-action-stack">
+        <button type="button" onClick={toggleFullscreen}>Fullscreen</button>
+        <button type="button" onClick={resetMap}>View all Lynn</button>
+      </div>
       <div className="map-data-note">Boundary: U.S. Census TIGERweb · Context layers: demonstration</div>
       {loading && <div className="map-loading" aria-live="polite"><span /><b>Loading Lynn map</b></div>}
-      {mapError && <div className="map-error" role="status"><b>Map notice</b><span>{mapError}</span></div>}
+      {mapError && <button type="button" className="map-error" onClick={() => setMapError("")}><b>Map notice</b><span>{mapError}</span><i>×</i></button>}
     </div>
   );
 }
