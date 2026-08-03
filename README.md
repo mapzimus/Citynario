@@ -9,6 +9,8 @@ Citynario is a transparent municipal decision-support platform for exploring how
 ## What the demo includes
 
 - Three guided Lynn demonstration sites
+- Interactive street map with the official Census TIGERweb Lynn boundary
+- Toggleable transit, school, and flood-screening context layers
 - Two editable housing alternatives
 - Low, central, and high estimate ranges
 - Resident, school-enrollment, mobility, and site-context modules
@@ -40,6 +42,8 @@ npm test
 ```
 
 GitHub Actions exports the app as a static site and deploys it to GitHub Pages on updates to `main`.
+
+The live map uses MapLibre GL JS with OpenFreeMap/OpenStreetMap tiles. It requires an internet connection for basemap tiles and the live Census boundary request.
 
 ## Modeling approach
 

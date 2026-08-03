@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CityMap } from "./components/CityMap";
 
 type ScenarioKey = "a" | "b";
 type AssumptionKey = "low" | "central" | "high";
@@ -42,7 +43,7 @@ const sites = [
     existingImpervious: 0.68,
     transitMiles: 0.2,
     floodOverlap: 0,
-    position: { left: "45%", top: "48%" },
+    center: [-70.9472, 42.4632] as [number, number],
   },
   {
     id: "waterfront",
@@ -53,7 +54,7 @@ const sites = [
     existingImpervious: 0.57,
     transitMiles: 0.45,
     floodOverlap: 34,
-    position: { left: "61%", top: "69%" },
+    center: [-70.9437, 42.4588] as [number, number],
   },
   {
     id: "central",
@@ -64,7 +65,7 @@ const sites = [
     existingImpervious: 0.82,
     transitMiles: 0.1,
     floodOverlap: 0,
-    position: { left: "51%", top: "35%" },
+    center: [-70.944, 42.46435] as [number, number],
   },
 ];
 
@@ -289,12 +290,12 @@ export default function Home() {
     }));
   };
 
-  const chooseSite = (siteId: string) => {
+  const chooseSite = useCallback((siteId: string) => {
     setScenarios((current) => ({
       a: { ...current.a, siteId },
       b: { ...current.b, siteId },
     }));
-  };
+  }, []);
 
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -426,34 +427,12 @@ export default function Home() {
           <div className="map-toolbar">
             <div>
               <span className="section-index">01</span>
-              <div><strong>Choose a place</strong><small>Three guided demonstration sites</small></div>
+              <div><strong>Choose a place</strong><small>Explore Lynn, then select a development site</small></div>
             </div>
             <span className="demo-badge">DEMO PACK · 0.1.0</span>
           </div>
-          <div className="map-canvas" aria-label="Schematic map of Lynn demonstration sites">
-            <div className="map-grid" />
-            <div className="city-land" />
-            <div className="water"><span>Nahant Bay</span></div>
-            <div className="road road-1" /><div className="road road-2" /><div className="road road-3" /><div className="road road-4" />
-            <span className="map-label label-lynn">LYNN</span>
-            <span className="map-label label-west">West Lynn</span>
-            <span className="map-label label-diamond">Diamond District</span>
-            <span className="map-road-label">LYNNWAY</span>
-            {sites.map((item, index) => (
-              <button
-                key={item.id}
-                className={`site-pin ${item.id === scenario.siteId ? "selected" : ""}`}
-                style={item.position}
-                onClick={() => chooseSite(item.id)}
-                aria-label={`Select ${item.name}`}
-              >
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                <b>{item.short}</b>
-              </button>
-            ))}
-            <div className="map-zoom" aria-hidden="true"><span>+</span><span>−</span></div>
-            <div className="north" aria-hidden="true"><b>N</b><i /></div>
-            <div className="scale" aria-hidden="true"><i /> ½ mi</div>
+          <div className="map-canvas">
+            <CityMap sites={sites} selectedSiteId={scenario.siteId} onSelectSite={chooseSite} />
           </div>
           <div className="site-strip">
             <div className="selected-site">
@@ -597,6 +576,8 @@ export default function Home() {
         <div className="source-register">
           <div><span className="section-index">05</span><div><strong>Lynn source register</strong><small>Candidate sources named in the project specification</small></div></div>
           <div className="source-list">
+            <a href="https://tigerweb.geo.census.gov/" target="_blank" rel="noreferrer"><span>Boundary</span><b>U.S. Census TIGERweb</b><em>Official federal · live ↗</em></a>
+            <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer"><span>Basemap</span><b>OpenStreetMap contributors</b><em>Open data · live ↗</em></a>
             <a href="https://www.mass.gov/info-details/massgis-data-layers" target="_blank" rel="noreferrer"><span>Geography</span><b>MassGIS data layers</b><em>Official state · candidate ↗</em></a>
             <a href="https://www.lynnma.gov/city_government/departments/isd/zoning" target="_blank" rel="noreferrer"><span>Land use</span><b>City of Lynn zoning</b><em>Official local · candidate ↗</em></a>
             <a href="https://profiles.doe.mass.edu/profiles/student.aspx?orgcode=01630000&orgtypecode=5" target="_blank" rel="noreferrer"><span>Schools</span><b>MA district profiles</b><em>Official state · candidate ↗</em></a>
