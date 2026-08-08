@@ -80,7 +80,7 @@ This matches the existing editable UI. Results remain derived via `calculate(sce
 ### Encode / validate rules
 
 - Decode must verify: exact expected object shape (hard-reject on schema failure or unknown keys), both `a` and `b` present, `activeScenario` in `{a,b}`, `mix` / `assumption` / `siteId` from known enums / the three demo site ids
-- Numeric ranges must match the UI controls: `units` 40–360, `affordable` 0–60, `parking` 0–1.5, `impervious` 20000–90000; all finite numbers
+- Numeric ranges must match the UI controls: `units` 25–350, `affordable` 0–60, `parking` 0–1.5, `impervious` 15000–75000; all finite numbers
 - Scenario `name` must be a non-empty string ≤ 80 characters
 - Use `base64url` without padding so links stay copy-friendly
 
